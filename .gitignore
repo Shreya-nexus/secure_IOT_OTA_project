@@ -1,0 +1,22 @@
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+ENV/
+.env
+
+# Database & Uploads & Logs
+*.db
+*.sqlite3
+firmware/*.bin
+logs/*.log
+!firmware/.gitkeep
+!logs/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
