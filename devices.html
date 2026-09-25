@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Devices | Secure IoT OTA Update System</title>
+  <meta name="description" content="Manage registered ESP32 devices and check firmware update availability">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">🛡️</div>
+          <div class="brand-title">
+            SECURE IoT OTA
+            <span class="brand-subtitle">Firmware Security</span>
+          </div>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="index.html">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item active">
+          <a href="devices.html">
+            <span class="nav-icon">📱</span>
+            <span>Devices</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="firmware.html">
+            <span class="nav-icon">📦</span>
+            <span>Firmware</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="updates.html">
+            <span class="nav-icon">📜</span>
+            <span>Update History</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator-box">
+          <span class="status-dot" id="sidebarStatusDot"></span>
+          <span id="sidebarStatusText" style="font-weight: 600;">Checking backend...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Header -->
+      <header class="top-header">
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation">☰</button>
+        <div class="header-title-container">
+          <h1>Registered ESP32 Devices</h1>
+          <p>View, manage, and check OTA updates for IoT nodes</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btnOpenRegisterModal">
+            <span>➕</span> Register New Device
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Body -->
+      <main class="content-body">
+        <!-- Offline Warning Banner -->
+        <div class="offline-banner hidden" id="offlineBanner">
+          <span style="font-size: 1.25rem;">⚠️</span>
+          <div>
+            <strong>Backend server is offline. Please start the Flask server.</strong>
+            <p style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">Ensure Flask is running at http://127.0.0.1:5000 (`py app.py`).</p>
+          </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="card-panel" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
+          <div class="card-header-bar" style="margin-bottom: 0;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; width: 100%;">
+              <div class="search-input-group" style="flex-grow: 1;">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="form-control" id="deviceSearchInput" placeholder="Search by Device ID or Name...">
+              </div>
+
+              <select class="form-control" id="statusFilterSelect" style="width: auto; min-width: 150px;">
+                <option value="ALL">All Statuses</option>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+              </select>
+
+              <button class="btn btn-secondary" id="btnRefreshDevices">
+                <span>🔄</span> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Devices Table Card -->
+        <div class="card-panel">
+          <div class="table-responsive">
+            <table class="data-table" id="devicesTable">
+              <thead>
+                <tr>
+                  <th>Device ID</th>
+                  <th>Device Name</th>
+                  <th>Current Firmware</th>
+                  <th>Status</th>
+                  <th>Last Seen</th>
+                  <th>Created At</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="devicesTableBody">
+                <tr>
+                  <td colspan="7" class="empty-state">
+                    <span class="loading-spinner"></span> Loading registered devices...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Register Device Modal -->
+  <div class="modal-overlay" id="registerModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Register New ESP32 Device</h3>
+        <button class="modal-close" id="btnCloseRegisterModal">&times;</button>
+      </div>
+      <form id="registerDeviceForm">
+        <div class="modal-body">
+          <div id="registerAlert" class="offline-banner hidden" style="margin-bottom: 1rem;"></div>
+
+          <div class="form-group">
+            <label class="form-label" for="regDeviceId">Device ID *</label>
+            <input type="text" class="form-control" id="regDeviceId" placeholder="e.g. ESP32-LIVING-01" required>
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Unique hardware identifier for the ESP32 node.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regDeviceName">Device Name *</label>
+            <input type="text" class="form-control" id="regDeviceName" placeholder="e.g. Living Room ESP32 Node" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regFirmwareVersion">Initial Firmware Version *</label>
+            <input type="text" class="form-control" id="regFirmwareVersion" value="1.0.0" placeholder="e.g. 1.0.0" required>
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Must be valid semantic versioning (e.g., 1.0.0).</small>
+          </div>
+
+          <!-- Token Result Display Box (Hidden by default) -->
+          <div id="tokenResultBox" class="card-panel hidden" style="background: rgba(16, 185, 129, 0.08); border-color: var(--accent-green); margin-top: 1rem; padding: 1rem;">
+            <h4 style="color: var(--accent-green); font-size: 0.9rem; margin-bottom: 0.5rem;">✅ Device Registered Successfully!</h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+              Generated Raw API Token (Save this token! It will only be shown once):
+            </p>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" class="form-control font-mono" id="generatedTokenInput" readonly style="font-size: 0.75rem;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnCopyToken">Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelRegister">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitRegister">Register Device</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Device Details & Check Update Modal -->
+  <div class="modal-overlay" id="deviceDetailsModal">
+    <div class="modal-container" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📱 Device Details & OTA Check</h3>
+        <button class="modal-close" id="btnCloseDetailsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Device Quick Info -->
+        <div class="card-panel" style="background: rgba(15, 23, 42, 0.4); margin-bottom: 1.25rem; padding: 1rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem;">
+            <div><strong style="color: var(--text-secondary);">Device ID:</strong> <span class="font-mono" id="detailDeviceId" style="color: var(--accent-cyan);">--</span></div>
+            <div><strong style="color: var(--text-secondary);">Device Name:</strong> <span id="detailDeviceName">--</span></div>
+            <div><strong style="color: var(--text-secondary);">Current Firmware:</strong> <span class="badge badge-cyan" id="detailFirmwareVersion">--</span></div>
+            <div><strong style="color: var(--text-secondary);">Status:</strong> <span id="detailStatus">--</span></div>
+            <div><strong style="color: var(--text-secondary);">Last Seen:</strong> <span class="font-mono" id="detailLastSeen">--</span></div>
+            <div><strong style="color: var(--text-secondary);">Created At:</strong> <span class="font-mono" id="detailCreatedAt">--</span></div>
+          </div>
+        </div>
+
+        <!-- Token Entry / Storage status -->
+        <div class="form-group">
+          <label class="form-label" for="detailDeviceToken">Device API Token (Required for Update Check)</label>
+          <input type="password" class="form-control font-mono" id="detailDeviceToken" placeholder="Enter raw API token if not automatically saved...">
+          <small style="color: var(--text-muted); font-size: 0.75rem;">
+            Tokens are automatically stored in browser memory when registering a device on this dashboard.
+          </small>
+        </div>
+
+        <!-- Check Update Trigger Area -->
+        <div style="text-align: center; margin: 1.5rem 0;">
+          <button type="button" class="btn btn-primary" id="btnTriggerCheckUpdate">
+            <span>🔍</span> Check for Update
+          </button>
+        </div>
+
+        <!-- Update Check Result Card -->
+        <div class="card-panel hidden" id="updateCheckResultCard" style="margin-bottom: 0;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+            <span>OTA Update Check Result</span>
+            <span id="updateAvailableBadge"></span>
+          </h4>
+
+          <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+            <div><strong>Current Version:</strong> <span class="font-mono" id="checkCurrentVersion">--</span></div>
+            <div><strong>Latest Server Version:</strong> <span class="font-mono" id="checkLatestVersion">--</span></div>
+            <div id="checkMessageArea" style="margin-top: 0.25rem;"></div>
+            <div id="checkDownloadArea" style="margin-top: 0.5rem;"></div>
+          </div>
+        </div>
+
+        <div class="note-box" style="margin-top: 1.25rem;">
+          ℹ️ <strong>Hardware Simulation Note:</strong> Because the physical ESP32 is not connected yet, clicking "Check for Update" executes the actual backend API request (`GET /api/firmware/check/<device_id>`) with the device's authorization token.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCloseDetailsBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/devices.js"></script>
+</body>
+</html>

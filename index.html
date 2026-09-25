@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Secure IoT OTA Update System</title>
+  <meta name="description" content="Secure IoT OTA Firmware Update System Dashboard for ESP32 devices">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">🛡️</div>
+          <div class="brand-title">
+            SECURE IoT OTA
+            <span class="brand-subtitle">Firmware Security</span>
+          </div>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active">
+          <a href="index.html">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="devices.html">
+            <span class="nav-icon">📱</span>
+            <span>Devices</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="firmware.html">
+            <span class="nav-icon">📦</span>
+            <span>Firmware</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="updates.html">
+            <span class="nav-icon">📜</span>
+            <span>Update History</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator-box">
+          <span class="status-dot" id="sidebarStatusDot"></span>
+          <span id="sidebarStatusText" style="font-weight: 600;">Checking backend...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Header -->
+      <header class="top-header">
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation">☰</button>
+        <div class="header-title-container">
+          <h1>SECURE IoT OTA</h1>
+          <p>IoT Firmware Security Management Dashboard</p>
+        </div>
+        <div class="header-actions">
+          <div class="status-indicator-box" style="background: rgba(15, 23, 42, 0.6);">
+            <span class="status-dot" id="headerStatusDot"></span>
+            <span id="headerStatusText" style="font-size: 0.825rem; font-weight: 600;">Server Checking...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Body Content -->
+      <main class="content-body">
+        <!-- Offline Warning Banner -->
+        <div class="offline-banner hidden" id="offlineBanner">
+          <span style="font-size: 1.25rem;">⚠️</span>
+          <div>
+            <strong>Backend server is offline. Please start the Flask server.</strong>
+            <p style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">Ensure Flask is running at http://127.0.0.1:5000 (`py app.py`).</p>
+          </div>
+        </div>
+
+        <!-- 6 Statistics Cards -->
+        <section class="stats-grid">
+          <!-- 1. Backend Status -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Backend Status</span>
+              <div class="stat-icon icon-cyan">🌐</div>
+            </div>
+            <div class="stat-value" id="statServerStatus">--</div>
+            <div class="stat-footer">Flask REST API (v1.0.0)</div>
+          </div>
+
+          <!-- 2. Total Devices -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Total Devices</span>
+              <div class="stat-icon icon-blue">📱</div>
+            </div>
+            <div class="stat-value" id="statTotalDevices">0</div>
+            <div class="stat-footer">Registered ESP32 Nodes</div>
+          </div>
+
+          <!-- 3. Online Devices -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Online Devices</span>
+              <div class="stat-icon icon-green">⚡</div>
+            </div>
+            <div class="stat-value" id="statOnlineDevices">0</div>
+            <div class="stat-footer">Active Heartbeat</div>
+          </div>
+
+          <!-- 4. Firmware Versions -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Firmware Versions</span>
+              <div class="stat-icon icon-purple">📦</div>
+            </div>
+            <div class="stat-value" id="statFirmwareVersions">0</div>
+            <div class="stat-footer">Uploaded Binaries</div>
+          </div>
+
+          <!-- 5. Successful Updates -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Successful Updates</span>
+              <div class="stat-icon icon-green">✅</div>
+            </div>
+            <div class="stat-value" id="statSuccessfulUpdates">0</div>
+            <div class="stat-footer">Flashed Partition Confirmations</div>
+          </div>
+
+          <!-- 6. Failed Updates -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Failed Updates</span>
+              <div class="stat-icon icon-red">❌</div>
+            </div>
+            <div class="stat-value" id="statFailedUpdates">0</div>
+            <div class="stat-footer">Logged Failed Reports</div>
+          </div>
+        </section>
+
+        <!-- Two Column Layout: Recent Devices & Recent OTA Updates -->
+        <div class="grid-2col">
+          <!-- Recent Devices -->
+          <div class="card-panel">
+            <div class="card-header-bar">
+              <h2 class="card-title">📱 Recent Devices</h2>
+              <a href="devices.html" class="btn btn-secondary btn-sm">View All Devices ➔</a>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="recentDevicesTable">
+                <thead>
+                  <tr>
+                    <th>Device ID</th>
+                    <th>Device Name</th>
+                    <th>Firmware</th>
+                    <th>Status</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody id="recentDevicesBody">
+                  <tr>
+                    <td colspan="5" class="empty-state">
+                      <span class="loading-spinner"></span> Loading devices...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent OTA Updates -->
+          <div class="card-panel">
+            <div class="card-header-bar">
+              <h2 class="card-title">📜 Recent OTA Activity</h2>
+              <a href="updates.html" class="btn btn-secondary btn-sm">View Full History ➔</a>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="recentUpdatesTable">
+                <thead>
+                  <tr>
+                    <th>Device ID</th>
+                    <th>Old Ver</th>
+                    <th>New Ver</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="recentUpdatesBody">
+                  <tr>
+                    <td colspan="5" class="empty-state">
+                      <span class="loading-spinner"></span> Loading update logs...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual System Architecture -->
+        <section class="card-panel">
+          <div class="card-header-bar">
+            <h2 class="card-title">🏗️ Visual System Architecture</h2>
+            <span class="badge badge-cyan">System Flow</span>
+          </div>
+
+          <div class="architecture-container">
+            <div class="arch-node">
+              <span class="arch-icon">👤</span>
+              <div class="arch-title">Administrator</div>
+              <div class="arch-desc">Firmware Upload</div>
+            </div>
+            <span class="arch-arrow">➔</span>
+
+            <div class="arch-node">
+              <span class="arch-icon">💻</span>
+              <div class="arch-title">Web Dashboard</div>
+              <div class="arch-desc">Frontend UI</div>
+            </div>
+            <span class="arch-arrow">➔</span>
+
+            <div class="arch-node">
+              <span class="arch-icon">⚙️</span>
+              <div class="arch-title">Flask REST API</div>
+              <div class="arch-desc">HTTP Server</div>
+            </div>
+            <span class="arch-arrow">➔</span>
+
+            <div class="arch-node">
+              <span class="arch-icon">🗄️</span>
+              <div class="arch-title">SQLite DB</div>
+              <div class="arch-desc">Audit & Secrets</div>
+            </div>
+            <span class="arch-arrow">➔</span>
+
+            <div class="arch-node">
+              <span class="arch-icon">📂</span>
+              <div class="arch-title">Firmware Store</div>
+              <div class="arch-desc">.bin Binaries</div>
+            </div>
+            <span class="arch-arrow">➔</span>
+
+            <div class="arch-node future-node">
+              <span class="arch-icon">📡</span>
+              <div class="arch-title">ESP32 Node</div>
+              <div class="arch-desc">Wi-Fi HTTP Client</div>
+            </div>
+            <span class="arch-arrow">➔</span>
+
+            <div class="arch-node future-node">
+              <span class="arch-icon">🚀</span>
+              <div class="arch-title">OTA Update</div>
+              <div class="arch-desc">Flash Partition</div>
+            </div>
+          </div>
+
+          <div class="note-box">
+            💡 <strong>Next Phase Note:</strong> ESP32 Wi-Fi hardware integration represents the next operational phase. Currently, the dashboard directly executes live REST API operations against the Flask server and SQLite database.
+          </div>
+        </section>
+
+        <!-- Security Features Checklist -->
+        <section class="card-panel">
+          <div class="card-header-bar">
+            <h2 class="card-title">🔒 System Security Features</h2>
+            <span class="badge badge-green">Cybersecurity Matrix</span>
+          </div>
+
+          <div class="security-grid">
+            <div class="security-item">
+              <span class="security-icon">✓</span>
+              <div class="security-text">
+                <h4>Device Authentication</h4>
+                <p>SHA-256 token hashing for registered ESP32 nodes.</p>
+              </div>
+            </div>
+
+            <div class="security-item">
+              <span class="security-icon">✓</span>
+              <div class="security-text">
+                <h4>Admin Authorization</h4>
+                <p>Strict administrative checks on binary upload endpoints.</p>
+              </div>
+            </div>
+
+            <div class="security-item">
+              <span class="security-icon">✓</span>
+              <div class="security-text">
+                <h4>Firmware .bin Validation</h4>
+                <p>Strict MIME type and binary extension enforcement.</p>
+              </div>
+            </div>
+
+            <div class="security-item">
+              <span class="security-icon">✓</span>
+              <div class="security-text">
+                <h4>SHA-256 Hash Integrity</h4>
+                <p>Automatic server-side SHA-256 checksum generation.</p>
+              </div>
+            </div>
+
+            <div class="security-item">
+              <span class="security-icon">✓</span>
+              <div class="security-text">
+                <h4>Path Traversal Protection</h4>
+                <p>Sanitization via Werkzeug and strict directory bounds.</p>
+              </div>
+            </div>
+
+            <div class="security-item">
+              <span class="security-icon">✓</span>
+              <div class="security-text">
+                <h4>Update Audit Logging</h4>
+                <p>Immutable event logging for success and failure attempts.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-box note-box-warning">
+            ⚠️ <strong>Cybersecurity Distinction Note:</strong> SHA-256 provides firmware <strong>integrity</strong> checking (preventing corruption). It does not by itself prove firmware <strong>authenticity</strong> (which requires asymmetric digital signatures like ECDSA/RSA).
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
